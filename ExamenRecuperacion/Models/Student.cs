@@ -9,5 +9,9 @@
         public string LastName { get; set; }
 
         public DateTime DateOfBirth { get; set; }
+
+        //Eliminacion Logica
+
+        public bool IsDeleted { get; set; }
     }
 }

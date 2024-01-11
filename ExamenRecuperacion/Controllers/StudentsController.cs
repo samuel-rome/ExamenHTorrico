@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ExamenRecuperacion.Models;
@@ -24,22 +21,18 @@ namespace ExamenRecuperacion.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Student>>> GetStudents()
         {
-          if (_context.Students == null)
-          {
-              return NotFound();
-          }
-            return await _context.Students.ToListAsync();
+            return await _context.Students
+                                 .Where(s => !s.IsDeleted)
+                                 .ToListAsync();
         }
 
         // GET: api/Students/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Student>> GetStudent(int id)
         {
-          if (_context.Students == null)
-          {
-              return NotFound();
-          }
-            var student = await _context.Students.FindAsync(id);
+            var student = await _context.Students
+                                        .Where(s => !s.IsDeleted && s.StudentId == id)
+                                        .FirstOrDefaultAsync();
 
             if (student == null)
             {
@@ -50,7 +43,6 @@ namespace ExamenRecuperacion.Controllers
         }
 
         // PUT: api/Students/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<IActionResult> PutStudent(int id, Student student)
         {
@@ -81,35 +73,27 @@ namespace ExamenRecuperacion.Controllers
         }
 
         // POST: api/Students
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
         public async Task<ActionResult<Student>> PostStudent(Student student)
         {
-          if (_context.Students == null)
-          {
-              return Problem("Entity set 'StudentContext.Students'  is null.");
-          }
             _context.Students.Add(student);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetStudent", new { id = student.StudentId }, student);
+            return CreatedAtAction(nameof(GetStudent), new { id = student.StudentId }, student);
         }
 
         // DELETE: api/Students/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteStudent(int id)
         {
-            if (_context.Students == null)
-            {
-                return NotFound();
-            }
             var student = await _context.Students.FindAsync(id);
-            if (student == null)
+            if (student == null || student.IsDeleted)
             {
                 return NotFound();
             }
 
-            _context.Students.Remove(student);
+            student.IsDeleted = true;
+            _context.Entry(student).State = EntityState.Modified;
             await _context.SaveChangesAsync();
 
             return NoContent();
@@ -117,7 +101,7 @@ namespace ExamenRecuperacion.Controllers
 
         private bool StudentExists(int id)
         {
-            return (_context.Students?.Any(e => e.StudentId == id)).GetValueOrDefault();
+            return _context.Students.Any(e => e.StudentId == id && !e.IsDeleted);
         }
     }
 }
